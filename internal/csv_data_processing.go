@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -18,13 +17,13 @@ type CsvFinancialData struct {
 }
 
 type SectorMetrics struct {
-	name string
-	idealWeight float64
-	currentWeight float64
+	name                string
+	idealWeight         float64
+	currentWeight       float64
 	diffFromIdealWeight float64
-	idealValue float64
-	currentValue float64
-	diffFromIdealValue float64
+	idealValue          float64
+	currentValue        float64
+	diffFromIdealValue  float64
 }
 
 func getFundDataFromCsv(csvInfo *CsvInfo) []CsvFinancialData {
@@ -93,8 +92,7 @@ func getStockDataFromCsv(csvInfo *CsvInfo) []CsvFinancialData {
 }
 
 func getFinancialData() []CsvFinancialData {
-	fileNames := [2]string{"fondslister_konto-24260812_30.3.2026.csv",
-		"aksjelister_konto-24260812_30.3.2026.csv"}
+	fileNames := getNewestCsvFinancials()
 
 	var financialData []CsvFinancialData
 	for _, fileName := range fileNames {
@@ -110,45 +108,35 @@ func getFinancialData() []CsvFinancialData {
 	return financialData
 }
 
-func main() {
-	financialData := getFinancialData()
+func getSectorMetrics(sectorHoldings map[string]float64, config Config, depositAmount int) []*SectorMetrics {
+	var sectorMetrics []*SectorMetrics
+	sumOfAllHoldings := getSumOfAllSectorHoldings(sectorHoldings) + float64(depositAmount)
 
-	config, err := ReadConfig("config.yml")
-	if err != nil {
-		fmt.Printf("Error reading config: %v\n", err)
-	}
-
-	sectorHoldings := getSectorHoldingValue(financialData, *config)
-
-	getSectorMetrics(sectorHoldings, *config)
-}
-
-func getSectorMetrics(sectorHoldings map[string]float64, config Config) []SectorMetrics {
-	var sectorMetrics []SectorMetrics
-	sumOfAllHoldings := getSumOfAllHoldings(sectorHoldings)
+	// calculate and fill in metrics for all sectors
 	for sector, holdingValue := range sectorHoldings {
 		idealWeight := config.Sectors[sector].Weight
 		currentWeight := (holdingValue / sumOfAllHoldings) * 100
-		diffWeight := idealWeight - currentWeight
+		diffWeight := currentWeight - idealWeight
 		idealValue := (idealWeight / 100) * sumOfAllHoldings
-		diffVal := idealValue - holdingValue
+		diffVal := holdingValue - idealValue
 
 		sectorMetric := SectorMetrics{
-			name: sector,
-			idealWeight: idealWeight,
-			currentWeight: currentWeight,
+			name:                sector,
+			idealWeight:         idealWeight,
+			currentWeight:       currentWeight,
 			diffFromIdealWeight: diffWeight,
-			idealValue: idealValue,
-			currentValue: holdingValue,
-			diffFromIdealValue: diffVal,
+			idealValue:          idealValue,
+			currentValue:        holdingValue,
+			diffFromIdealValue:  diffVal,
 		}
 
-		sectorMetrics = append(sectorMetrics, sectorMetric)
+		sectorMetrics = append(sectorMetrics, &sectorMetric)
 	}
+
 	return sectorMetrics
 }
 
-func getSumOfAllHoldings(sectorHoldings map[string]float64) float64 {
+func getSumOfAllSectorHoldings(sectorHoldings map[string]float64) float64 {
 	var total float64
 	for _, value := range sectorHoldings {
 		total += value
@@ -160,7 +148,7 @@ func checkIfNameMatchesFundOrStock(dataName string, keyword string) bool {
 	if strings.Contains(strings.ToLower(dataName), strings.ToLower(keyword)) {
 		return true
 	}
-	
+
 	return false
 }
 
