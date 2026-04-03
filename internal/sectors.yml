@@ -1,0 +1,44 @@
+Sectors:
+  USA:
+    weight: 16
+    stocks: []
+    funds:
+      - KLP AksjeUSA Indeks N
+      - Nordnet USA Indeks NOK
+  Technology:
+    weight: 16
+    stocks:
+      - Amundi Nasdaq-100 II UCITS
+    funds:
+      - Nordnet Teknologi Indeks
+  Emerging markets:
+    weight: 10
+    stocks: []
+    funds:
+      - Nordnet Emerging Markets Indeks
+      - KLP AksjeFremvoksende Markeder Indeks
+  Asia:
+    weight: 16
+    stocks: []
+    funds:
+      - KLP AksjeAsia Indeks N
+  Global:
+    weight: 16
+    stocks: []
+    funds:
+      - KLP AksjeGlobal Indeks N
+      - Nordnet Global Indeks NOK
+  Europe:
+    weight: 16
+    stocks: []
+    funds:
+      - Nordnet Europa Indeks NOK
+      - KLP AksjeEuropa Indeks N
+  Nordic:
+    weight: 10
+    stocks: []
+    funds:
+      - Nordnet Sverige Index
+      - Nordnet Suomi Indeksi
+      - Nordnet Norge Indeks
+      - Nordnet Danmark Indeks B
