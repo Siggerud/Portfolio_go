@@ -1,4 +1,4 @@
-module github.com/Siggerud/Portfolio_go
+module Portfolio_go
 
 go 1.26.1
 

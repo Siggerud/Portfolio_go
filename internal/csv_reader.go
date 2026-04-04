@@ -1,12 +1,12 @@
-package main
+package core
 
 import (
-	//"fmt"
 	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
 	"strings"
+
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 )
@@ -18,15 +18,11 @@ type CsvInfo struct {
 
 func get_csv_file(fileName string) *os.File {
 	// open the file
-	//TODO: denne må hentes på en annen måte
 	file, err := os.Open(fileName)
 
 	if err != nil {
 		log.Fatal("Error while reading the file", err)
 	}
-
-	// close the file
-	//defer file.Close()
 
 	return file
 }
