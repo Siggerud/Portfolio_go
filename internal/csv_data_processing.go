@@ -91,7 +91,7 @@ func getStockDataFromCsv(csvInfo *CsvInfo) []CsvFinancialData {
 	return stockDataArray
 }
 
-func getFinancialData() []CsvFinancialData {
+func GetFinancialData() []CsvFinancialData {
 	fileNames := getNewestCsvFinancials()
 
 	var financialData []CsvFinancialData
@@ -108,7 +108,7 @@ func getFinancialData() []CsvFinancialData {
 	return financialData
 }
 
-func getSectorMetrics(sectorHoldings map[string]float64, config Config, depositAmount int) []*SectorMetrics {
+func GetSectorMetrics(sectorHoldings map[string]float64, config Config, depositAmount int) []*SectorMetrics {
 	var sectorMetrics []*SectorMetrics
 	sumOfAllHoldings := getSumOfAllSectorHoldings(sectorHoldings) + float64(depositAmount)
 
@@ -152,7 +152,7 @@ func checkIfNameMatchesFundOrStock(dataName string, keyword string) bool {
 	return false
 }
 
-func getSectorHoldingValue(financialData []CsvFinancialData, config Config) map[string]float64 {
+func GetSectorHoldingValue(financialData []CsvFinancialData, config Config) map[string]float64 {
 	sectorHoldings := make(map[string]float64)
 	for name := range config.Sectors {
 		sectorHoldings[name] = 0

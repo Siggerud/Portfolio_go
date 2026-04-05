@@ -8,7 +8,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-func printSectorMetrics(sectorMetrics []*SectorMetrics) {
+func PrintSectorMetrics(sectorMetrics []*SectorMetrics) {
 	sortSectorMetrics(sectorMetrics)
 
 	table := tablewriter.NewWriter(os.Stdout)
