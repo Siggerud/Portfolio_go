@@ -27,3 +27,9 @@ jobs:
 
       - name: Test
         run: go test ./... -v
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run vulnerability scan
+        run: govulncheck ./...

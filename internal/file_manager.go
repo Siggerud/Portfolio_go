@@ -1,8 +1,8 @@
 package core
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"time"
@@ -10,23 +10,55 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func getNewestCsvFinancials() []string {
-	path := getPathToCsvFinancials()
+type configProvider interface {
+	readConfig(path string) (*Config, error)
+}
+
+type configReader struct{}
+
+func (c configReader) readConfig(path string) (*Config, error) {
+	return ReadConfigYaml(path)
+}
+
+func getRegexPatterns(c configProvider) (map[string]string, error) {
+	config, err := c.readConfig("../../configs/config.yml")
+	if err != nil {
+		return map[string]string{}, fmt.Errorf("Error reading config: %v\n", err)
+	}
+
+	// read the regex patterns from the config.yml file
+	stockListPattern := config.Patterns.StockFilenamePattern
+	fundListPattern := config.Patterns.FundFilenamepattern
+
+	return map[string]string{
+		"stock": stockListPattern,
+		"fund":  fundListPattern,
+	}, nil
+}
+
+func getAllCsvFinancials() ([]string, error) {
+	path, err := getPathToCsvFinancials()
+
+	if err != nil {
+		return []string{}, err
+	}
 
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		fmt.Printf("Error: could not open path: %s", path)
+		return []string{}, errors.New("Error: could not open path: " + path)
 	}
 
-	stockListPattern := `^aksjelister_konto-\d+_(\d{1,2}\.\d{1,2}\.\d{4})( \(\d+\))?\.csv$`
-	fundListPattern := `^fondslister_konto-\d+_(\d{1,2}\.\d{1,2}\.\d{4})( \(\d+\))?\.csv$`
+	regexPatterns, err := getRegexPatterns(configReader{})
+	if err != nil {
+		return []string{}, fmt.Errorf("Error: Something went wrong retrieving regex patterns: %v", err)
+	}
 
+	// read the regex patterns
+	stockListPattern := regexPatterns["stock"]
+	fundListPattern := regexPatterns["fund"]
+
+	csvFinancialFiles := []string{}
 	// loop over the content of the directory
-	stockDataFilePath := ""
-	stockDataFileNewestDate := time.Time{}
-
-	fundDataFilePath := ""
-	fundDataFileNewestDate := time.Time{}
 	for _, entry := range entries {
 		// skip subdirectories
 		if entry.IsDir() {
@@ -34,10 +66,50 @@ func getNewestCsvFinancials() []string {
 		}
 
 		fileName := entry.Name()
-
 		// check if file matches the regexp pattern for stocks
 		if checkIfFilenameMatchesPattern(stockListPattern, fileName) {
-			time := extractDateFromFilename(stockListPattern, fileName)
+			csvFinancialFiles = append(csvFinancialFiles, fileName)
+			continue
+		}
+
+		// check if file matches the regexp pattern for funds
+		if checkIfFilenameMatchesPattern(fundListPattern, fileName) {
+			csvFinancialFiles = append(csvFinancialFiles, fileName)
+		}
+	}
+
+	return csvFinancialFiles, nil
+}
+
+func getNewestCsvFinancials() ([]string, error) {
+	csvFinancialFiles, err := getAllCsvFinancials()
+	if err != nil {
+		return []string{}, fmt.Errorf("Error: Something went wrong retrieving csv financials: %v", err)
+	}
+
+	path, err := getPathToCsvFinancials()
+
+	regexPatterns, err := getRegexPatterns(configReader{})
+	if err != nil {
+		return []string{}, fmt.Errorf("Error: Something went wrong retrieving regex patterns: %v", err)
+	}
+
+	// read the regex patterns
+	stockListPattern := regexPatterns["stock"]
+	fundListPattern := regexPatterns["fund"]
+
+	stockDataFilePath := ""
+	stockDataFileNewestDate := time.Time{}
+
+	fundDataFilePath := ""
+	fundDataFileNewestDate := time.Time{}
+	for _, fileName := range csvFinancialFiles {
+		// check if file matches the regexp pattern for stocks
+		if checkIfFilenameMatchesPattern(stockListPattern, fileName) {
+			time, err := extractDateFromFilename(stockListPattern, fileName)
+			if err != nil {
+				return []string{}, err
+			}
 
 			// if the file date is greater than the previous checked file, this file is currently the newest
 			if checkIfFilenameDateIsNewest(time, stockDataFileNewestDate) {
@@ -49,8 +121,11 @@ func getNewestCsvFinancials() []string {
 
 		// check if file matches the regexp pattern for funds
 		if checkIfFilenameMatchesPattern(fundListPattern, fileName) {
-			time := extractDateFromFilename(fundListPattern, fileName)
+			time, err := extractDateFromFilename(fundListPattern, fileName)
 
+			if err != nil {
+				return []string{}, err
+			}
 			// if the file date is greater than the previous checked file, this file is currently the newest
 			if checkIfFilenameDateIsNewest(time, fundDataFileNewestDate) {
 				fundDataFileNewestDate = time
@@ -69,7 +144,7 @@ func getNewestCsvFinancials() []string {
 		csvFinancials = append(csvFinancials, stockDataFilePath)
 	}
 
-	return csvFinancials
+	return csvFinancials, nil
 }
 
 func checkIfFilenameDateIsNewest(fileNameDate time.Time, currentNewestDate time.Time) bool {
@@ -79,16 +154,21 @@ func checkIfFilenameDateIsNewest(fileNameDate time.Time, currentNewestDate time.
 	return false
 }
 
-func extractDateFromFilename(pattern string, fileName string) time.Time {
+func extractDateFromFilename(pattern string, fileName string) (time.Time, error) {
 	re := getRegexp(pattern)
 	matches := re.FindStringSubmatch(fileName)
+	if len(matches) == 1 {
+		return time.Time{}, errors.New("No date could be extracted from pattern")
+	} else if len(matches) > 2 {
+		return time.Time{}, errors.New("More than one match group in pattern. Inconclusive date.")
+	}
 
 	dateStr := matches[1]
 
 	// Parse to time.Time
 	t, _ := time.Parse("2.1.2006", dateStr)
 
-	return t
+	return t, nil
 }
 
 func checkIfFilenameMatchesPattern(pattern string, fileName string) bool {
@@ -103,12 +183,12 @@ func getRegexp(pattern string) *regexp.Regexp {
 	return regexp.MustCompile(pattern)
 }
 
-func getPathToCsvFinancials() string {
+func getPathToCsvFinancials() (string, error) {
 	// Loads .env file from the current directory
-	err := godotenv.Load()
+	err := godotenv.Load("../../.env")
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		return "", errors.New("Error loading .env file")
 	}
 
-	return os.Getenv("CSV_FINANCIALS_PATH")
+	return os.Getenv("CSV_FINANCIALS_PATH"), nil
 }

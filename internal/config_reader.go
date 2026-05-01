@@ -14,13 +14,21 @@ type Sector struct {
 	Funds  []string `yaml:"funds"`
 }
 
-// Config represents the overall configuration
-type Config struct {
+// Sectors represents the overall configuration
+type Sectors struct {
 	Sectors map[string]Sector `yaml:"Sectors"`
 }
 
-// ReadConfig reads the YAML configuration file into a Config struct
-func ReadConfig(filename string) (*Config, error) {
+type Pattern struct {
+	StockFilenamePattern string `yaml:"stocks"`
+	FundFilenamepattern  string `yaml:"funds"`
+}
+
+type Config struct {
+	Patterns Pattern `yaml:"Patterns"`
+}
+
+func ReadConfigYaml(filename string) (*Config, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
@@ -29,8 +37,24 @@ func ReadConfig(filename string) (*Config, error) {
 	var config Config
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal YAML: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal config YAML: %w", err)
 	}
 
 	return &config, nil
+}
+
+// ReadSectorYaml reads the YAML configuration file into a Config struct
+func ReadSectorYaml(filename string) (*Sectors, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	var sectors Sectors
+	err = yaml.Unmarshal(data, &sectors)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal YAML: %w", err)
+	}
+
+	return &sectors, nil
 }
